@@ -1,0 +1,50 @@
+name: Contract Intelligence Cloud Harvester
+
+on:
+  schedule:
+    # Every 15 minutes during Indian market hours (03:00 - 13:00 UTC = 8:30 AM - 6:30 PM IST Mon-Fri)
+    - cron: '*/15 3-13 * * 1-5'
+    # Hourly during off-market hours and weekends
+    - cron: '0 * * * *'
+  workflow_dispatch:
+    inputs:
+      backfill_days:
+        description: 'Number of past days to backfill (0 for live only)'
+        required: false
+        default: '0'
+
+concurrency:
+  group: contract-harvester-runner
+  cancel-in-progress: false
+
+jobs:
+  harvest-contracts:
+    name: Exchange & Government Contract Harvester
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout Harvester Engine
+        uses: actions/checkout@v4
+
+      - name: Setup Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+          cache-dependency-path: 'requirements.txt'
+
+      - name: Install Dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run Cloud Contract Harvester
+        env:
+          VAULT_PAT: ${{ secrets.VAULT_PAT }}
+        run: |
+          BACKFILL_ARGS=""
+          if [ "${{ github.event.inputs.backfill_days }}" != "" ] && [ "${{ github.event.inputs.backfill_days }}" != "0" ]; then
+            BACKFILL_ARGS="--backfill-days ${{ github.event.inputs.backfill_days }}"
+          fi
+          python3 -u harvest_contracts.py $BACKFILL_ARGS
