@@ -1,0 +1,36 @@
+name: 1-Year Historical Contract Backfill
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: contract-harvester-runner
+  cancel-in-progress: false
+
+jobs:
+  backfill-1-year:
+    name: 12-Month Historical Cloud Backfiller
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+
+    steps:
+      - name: Checkout Harvester Engine
+        uses: actions/checkout@v4
+
+      - name: Setup Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+          cache-dependency-path: 'requirements.txt'
+
+      - name: Install Dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run 1-Year Cloud Backfill
+        env:
+          VAULT_PAT: ${{ secrets.VAULT_PAT }}
+        run: |
+          python3 -u backfill_1_year.py
