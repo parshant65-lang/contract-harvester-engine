@@ -1,0 +1,4 @@
+vault_work*/
+__pycache__/
+*.pyc
+test_filter.py
